@@ -5,6 +5,7 @@
 
 namespace kbd_led_ctl::hid {
 class HID_Registry {
+public:
   HID_Registry() = default;
 
   void register_device(HID_Device &&hid_device);

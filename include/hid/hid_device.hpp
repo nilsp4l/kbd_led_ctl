@@ -1,13 +1,14 @@
 #pragma once
 
 #include "posix/fd.hpp"
+#include <cstdint>
 #include <print>
 #include <string>
 
 namespace kbd_led_ctl::hid {
 
 struct HID_ID {
-  int bus, vid, pid;
+  std::uint32_t bus, vid, pid;
 };
 
 struct HID_Device {
@@ -42,7 +43,7 @@ template <> struct std::formatter<kbd_led_ctl::hid::HID_ID> {
   auto format(const kbd_led_ctl::hid::HID_ID &hid_id,
               std::format_context &ctx) const {
     auto out = ctx.out();
-    out = std::format_to(out, "[{:#06x}:{:#06x}:{:#06x}]\n", hid_id.bus,
+    out = std::format_to(out, "[{:#06x}:{:#06x}:{:#06x}]", hid_id.bus,
                          hid_id.vid, hid_id.pid);
     return out;
   }
@@ -55,7 +56,6 @@ template <> struct std::formatter<kbd_led_ctl::hid::HID_Device> {
     auto out = ctx.out();
     out = std::format_to(out, "{:<20}{}\n", "name:", hid_device.hid_name_);
     out = std::format_to(out, "{:<20}{}\n", "hid id:", hid_device.hid_id_);
-    out = std::format_to(out, "{:<20}{}\n", "pid:", hid_device.hid_id_.pid);
     out = std::format_to(out, "{:<20}{}\n", "hid_name:", hid_device.hid_name_);
     out = std::format_to(out, "{:<20}{}\n", "hid_phys:", hid_device.hid_phys_);
     out = std::format_to(out, "{:<20}{}\n", "hid_uniq:", hid_device.hid_uniq_);
