@@ -2,6 +2,7 @@
 #include "device/device_profile.hpp"
 #include "hid/hid_device.hpp"
 #include "hid/hid_registry.hpp"
+#include "rgbi.hpp"
 #include <cassert>
 #include <cstdint>
 #include <cstdio>
@@ -149,15 +150,12 @@ int main(int argc, char *argv[]) {
                                 {nullptr, 0, nullptr, 0}};
 
   // red under full intensity
-  static constexpr uint32_t Default_Color{0xff0000ff};
 
   bool list_flag{false};
   bool filtered_flag{false};
-  bool have_vid{false};
-  bool have_pid{false};
-  std::uint32_t vid{};
-  std::uint32_t pid{};
-  std::uint32_t color{Default_Color};
+  std::optional<std::uint32_t> vid{};
+  std::optional<std::uint32_t> pid{};
+  std::optional<RGBI> color{};
   int c{};
   while ((c = getopt_long(argc, argv, "lfv:p:h", opts, nullptr)) != -1) {
     switch (static_cast<char>(c)) {
@@ -169,14 +167,12 @@ int main(int argc, char *argv[]) {
       break;
     case 'v':
       vid = from_hex(optarg);
-      have_vid = true;
       break;
     case 'p':
       pid = from_hex(optarg);
-      have_pid = true;
       break;
     case 'c':
-      color = from_hex(optarg);
+      color = RGBI{optarg};
       break;
     case 'h':
       // usage();
@@ -200,14 +196,14 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  if (!have_pid || !have_vid) {
+  if (!pid || !vid) {
     return 1;
   }
 
-  find_device_filtered(vid, pid, registry);
+  find_device_filtered(*vid, *pid, registry);
 
   if (registry.items().empty()) {
-    std::print("No device found with vid {:#6x} and pid {:#6x}\n", vid, pid);
+    std::print("No device found with vid {:#6x} and pid {:#6x}\n", *vid, *pid);
     return 0;
   }
 

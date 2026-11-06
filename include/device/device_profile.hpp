@@ -8,7 +8,7 @@
 #include <string>
 
 namespace kbd_led_ctl::device {
-using Handler_T = void (*)(hid::HID_Device &, uint32_t color);
+using Handler_T = void (*)(hid::HID_Device &, std::optional<RGBI> color);
 
 struct Device_Profile {
   const std::string Name;
