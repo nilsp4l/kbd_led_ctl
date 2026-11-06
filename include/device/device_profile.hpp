@@ -4,7 +4,6 @@
 #include "hid/hid_device.hpp"
 #include <array>
 #include <cstdint>
-#include <print>
 #include <string>
 
 namespace kbd_led_ctl::device {

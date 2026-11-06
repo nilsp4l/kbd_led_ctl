@@ -3,10 +3,12 @@
 #include <array>
 #include <charconv>
 #include <cstddef>
-#include <print>
 #include <stdexcept>
 
 namespace kbd_led_ctl {
+
+// this whole thing just exists to avoid parsing integers that are bigger than
+// one byte
 RGBI::RGBI(const std::string &rgbi_string) {
   static constexpr std::size_t RGBI_String_Length{8};
   static constexpr std::size_t RGBI_No_Fields{4};

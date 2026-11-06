@@ -203,7 +203,7 @@ int main(int argc, char *argv[]) {
   find_device_filtered(*vid, *pid, registry);
 
   if (registry.items().empty()) {
-    std::print("No device found with vid {:#6x} and pid {:#6x}\n", *vid, *pid);
+    std::println("No device found with vid {:#6x} and pid {:#6x}", *vid, *pid);
     return 0;
   }
 
