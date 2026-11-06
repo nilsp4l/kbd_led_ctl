@@ -1,7 +1,8 @@
 
+#include "device/device_profile.hpp"
 #include "hid/hid_device.hpp"
 #include "hid/hid_registry.hpp"
-#include "posix/fd.hpp"
+#include <cassert>
 #include <cstdint>
 #include <cstdio>
 #include <fcntl.h>
@@ -10,28 +11,27 @@
 #include <getopt.h>
 #include <iostream>
 #include <linux/hidraw.h>
+#include <optional>
 #include <string>
 #include <sys/ioctl.h>
 #include <unistd.h>
 
 using namespace kbd_led_ctl;
 
-static constexpr int WANTED_VENDOR_ID{0x0B05};
-static constexpr int WANTED_PRODUCT_ID{0x19B6};
-
-#define BUFFER_SIZE 256;
-
-static void list(hid::HID_Registry &registry) {
+static void fill_registry(hid::HID_Registry &registry) {
   static constexpr const char *hidraw_dir{"/sys/class/hidraw"};
   static constexpr const char *hidraw_prefix{"hidraw"};
-  static constexpr const char *dev_prefix{"/dev"};
   static std::filesystem::path uevent_subpath{std::filesystem::path("device") /
                                               "uevent"};
   for (const auto &entry : std::filesystem::directory_iterator(hidraw_dir)) {
-    if (!entry.path().filename().string().starts_with(hidraw_prefix)) {
+    std::string file_name{entry.path().filename().string()};
+    if (!file_name.starts_with(hidraw_prefix)) {
       // very unlikely case but still
       continue;
     }
+    std::uint32_t id;
+    std::sscanf(file_name.c_str(), std::format("{}%x", hidraw_prefix).c_str(),
+                &id);
 
     std::ifstream uevent(entry.path() / uevent_subpath);
 
@@ -82,10 +82,26 @@ static void list(hid::HID_Registry &registry) {
       }
     }
     registry.register_device(kbd_led_ctl::hid::HID_Device{
-        0, std::move(driver), kbd_led_ctl::hid::HID_ID{bus, vid, pid},
+        id, std::move(driver), kbd_led_ctl::hid::HID_ID{bus, vid, pid},
         std::move(hid_name), std::move(hid_phys), std::move(hid_uniq),
         std::move(modalias)});
   }
+}
+
+std::optional<const device::Device_Profile>
+find_device_profile(const hid::HID_Device &device) {
+  for (const auto &device_profile : device::Device_Profiles)
+    if (device.hid_id_.vid == device_profile.Vendor_ID &&
+        device.hid_id_.pid == device_profile.Product_ID) {
+      return device_profile;
+    }
+  return {};
+}
+
+void filter_registry(hid::HID_Registry &registry) {
+  registry.filter([](const hid::HID_Device &device) {
+    return !find_device_profile(device).has_value();
+  });
 }
 
 uint32_t from_hex(const char *str) {
@@ -104,13 +120,36 @@ uint32_t from_hex(const char *str) {
   return to_return;
 }
 
+void list_with_profile(const hid::HID_Registry &registry) {
+  for (auto &device : registry.items()) {
+    auto device_profile{find_device_profile(device)};
+    if (device_profile) {
+      std::print("{}\n{:<20}{}\n\n", device,
+                 "recognized_device:", device_profile->Name);
+    } else {
+      std::print("{}\n\n", device);
+    }
+  }
+}
+
+void find_device_filtered(uint32_t vid, uint32_t pid,
+                          hid::HID_Registry &registry) {
+  registry.filter([vid, pid](const hid::HID_Device &device) {
+    return device.hid_id_.vid != vid || device.hid_id_.pid != pid;
+  });
+}
+
 int main(int argc, char *argv[]) {
   static const option opts[] = {{"list", no_argument, nullptr, 'l'},
                                 {"filtered", no_argument, nullptr, 'f'},
                                 {"vid", required_argument, nullptr, 'v'},
                                 {"pid", required_argument, nullptr, 'p'},
+                                {"color", required_argument, nullptr, 'c'},
                                 {"help", no_argument, nullptr, 'h'},
                                 {nullptr, 0, nullptr, 0}};
+
+  // red under full intensity
+  static constexpr uint32_t Default_Color{0xff0000ff};
 
   bool list_flag{false};
   bool filtered_flag{false};
@@ -118,8 +157,9 @@ int main(int argc, char *argv[]) {
   bool have_pid{false};
   std::uint32_t vid{};
   std::uint32_t pid{};
+  std::uint32_t color{Default_Color};
   int c{};
-  while ((c = getopt_long(argc, argv, "lfv:p:h", opts, nullptr))) {
+  while ((c = getopt_long(argc, argv, "lfv:p:h", opts, nullptr)) != -1) {
     switch (static_cast<char>(c)) {
     case 'l':
       list_flag = true;
@@ -135,6 +175,9 @@ int main(int argc, char *argv[]) {
       pid = from_hex(optarg);
       have_pid = true;
       break;
+    case 'c':
+      color = from_hex(optarg);
+      break;
     case 'h':
       // usage();
       return 0;
@@ -143,66 +186,39 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  std::print("{}, {}\n", vid, pid);
   hid::HID_Registry registry;
-  /*
-  list(registry);
-  for (auto &device : registry.items()) {
-    std::print("{}\n", device);
-  }
-  */
-  /*
-    auto fd = posix::FD(open("/dev/hidraw1", O_RDWR));
-    if (!fd.valid()) {
-      perror("could not open device");
-      return 1;
-    }
-
-    uint8_t cmd[2] = {0x0B, 0x01};
-    if (ioctl(fd.get(), HIDIOCSFEATURE(sizeof cmd), cmd) < 0) {
-      perror("HIDIOCSFEATURE");
-      return 1;
-    }
-
-    uint8_t color_off[10] = {0x05, 0x01, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00,
-    0x00,
-  0x00
-};
-ioctl(fd.get(), HIDIOCSFEATURE(10), color_off);
-*/
-  /*
-    if (ec == 3 && vid == WANTED_VENDOR_ID && pid == WANTED_PRODUCT_ID) {
-      return std::filesystem::path(dev_prefix) / entry.path().filename();
-    }
-    */
-  /*
-  int size = 0;
-  if (ioctl(fd, HIDIOCGRDESCSIZE, &size)) {
-    perror("could not obtain desc size");
-    goto error;
+  fill_registry(registry);
+  if (list_flag) {
+    list_with_profile(registry);
+    return 0;
   }
 
-  if (size <= 0 || size > 4096) {
-    fprintf(stderr, "desc size contains unexpected value %d", size);
-    goto error;
+  filter_registry(registry);
+
+  if (filtered_flag) {
+    list_with_profile(registry);
+    return 0;
   }
 
-  struct hidraw_report_descriptor desc;
-  if (ioctl(fd, HIDIOCGRDESC, &desc)) {
-    perror("could not obtain desc");
-    goto error;
-  }
-  for (int i = 0; i < size; ++i) {
-    printf("%c", desc.value[i]);
+  if (!have_pid || !have_vid) {
+    return 1;
   }
 
-  close(fd);
+  find_device_filtered(vid, pid, registry);
+
+  if (registry.items().empty()) {
+    std::print("No device found with vid {:#6x} and pid {:#6x}\n", vid, pid);
+    return 0;
+  }
+
+  auto profile{find_device_profile(registry.items().front())};
+
+  // at this point we filtered already
+  assert(profile.has_value());
+
+  auto device{registry.extract_front()};
+
+  profile->Handler(device, color);
+
   return 0;
-  // ioctl();
-  //
-
-  error:
-  close(fd);
-  return 1;
-  */
 }

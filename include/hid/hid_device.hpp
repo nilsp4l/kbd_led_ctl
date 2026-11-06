@@ -12,7 +12,7 @@ struct HID_ID {
 };
 
 struct HID_Device {
-  using ID = int;
+  using ID = std::uint32_t;
   using DRIVER = std::string;
   using HID_ID = hid::HID_ID;
   using HID_NAME = std::string;
@@ -22,6 +22,10 @@ struct HID_Device {
 
   HID_Device(ID id, DRIVER driver, HID_ID hid_id, HID_NAME hid_name,
              HID_PHYS hid_phys, HID_UNIQ hid_uniq, MODALIAS modalias);
+
+  void open();
+  bool opened() const;
+  int fd() const;
 
   const ID id_;
   const DRIVER driver_;
@@ -54,12 +58,13 @@ template <> struct std::formatter<kbd_led_ctl::hid::HID_Device> {
   auto format(const kbd_led_ctl::hid::HID_Device &hid_device,
               std::format_context &ctx) const {
     auto out = ctx.out();
+    out = std::format_to(out, "{:<20}{}\n", "id:", hid_device.id_);
     out = std::format_to(out, "{:<20}{}\n", "name:", hid_device.hid_name_);
     out = std::format_to(out, "{:<20}{}\n", "hid id:", hid_device.hid_id_);
     out = std::format_to(out, "{:<20}{}\n", "hid_name:", hid_device.hid_name_);
     out = std::format_to(out, "{:<20}{}\n", "hid_phys:", hid_device.hid_phys_);
     out = std::format_to(out, "{:<20}{}\n", "hid_uniq:", hid_device.hid_uniq_);
-    out = std::format_to(out, "{:<20}{}\n", "modalias:", hid_device.modalias_);
+    out = std::format_to(out, "{:<20}{}", "modalias:", hid_device.modalias_);
     return out;
   }
 };
