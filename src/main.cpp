@@ -157,64 +157,77 @@ int main(int argc, char *argv[]) {
   std::optional<std::uint32_t> pid{};
   std::optional<RGBI> color{};
   int c{};
-  while ((c = getopt_long(argc, argv, "lfv:p:h", opts, nullptr)) != -1) {
-    switch (static_cast<char>(c)) {
-    case 'l':
-      list_flag = true;
-      break;
-    case 'f':
-      filtered_flag = true;
-      break;
-    case 'v':
-      vid = from_hex(optarg);
-      break;
-    case 'p':
-      pid = from_hex(optarg);
-      break;
-    case 'c':
-      color = RGBI{optarg};
-      break;
-    case 'h':
-      // usage();
-      return 0;
-    default:
-      return 2;
+  try {
+    while ((c = getopt_long(argc, argv, "lfv:p:h", opts, nullptr)) != -1) {
+      switch (static_cast<char>(c)) {
+      case 'l':
+        list_flag = true;
+        break;
+      case 'f':
+        filtered_flag = true;
+        break;
+      case 'v':
+        vid = from_hex(optarg);
+        break;
+      case 'p':
+        pid = from_hex(optarg);
+        break;
+      case 'c':
+        color = RGBI{optarg};
+        break;
+      case 'h':
+        // usage();
+        return 0;
+      default:
+        return 2;
+      }
     }
-  }
+    hid::HID_Registry registry;
+    fill_registry(registry);
+    if (list_flag) {
+      list_with_profile(registry);
+      return 0;
+    }
 
-  hid::HID_Registry registry;
-  fill_registry(registry);
-  if (list_flag) {
-    list_with_profile(registry);
+    filter_registry(registry);
+
+    if (filtered_flag) {
+      list_with_profile(registry);
+      return 0;
+    }
+
+    if (!pid || !vid) {
+      return 1;
+    }
+
+    find_device_filtered(*vid, *pid, registry);
+
+    if (registry.items().empty()) {
+      std::println("No device found with vid {:#6x} and pid {:#6x}", *vid,
+                   *pid);
+      return 0;
+    }
+
+    auto profile{find_device_profile(registry.items().front())};
+
+    // at this point we filtered already
+    assert(profile.has_value());
+
+    auto device{registry.extract_front()};
+
+    profile->Handler(device, color);
+
     return 0;
-  }
-
-  filter_registry(registry);
-
-  if (filtered_flag) {
-    list_with_profile(registry);
-    return 0;
-  }
-
-  if (!pid || !vid) {
+  } catch (const std::system_error &e) {
+    std::println(stderr, "error: {}", e.what());
+    std::println(stderr, "  code: {} ({})", e.code().value(),
+                 e.code().message());
+    return 1;
+  } catch (const std::exception &e) {
+    std::println(stderr, "error: {}", e.what());
+    return 1;
+  } catch (...) {
+    std::println(stderr, "error: unknown exception");
     return 1;
   }
-
-  find_device_filtered(*vid, *pid, registry);
-
-  if (registry.items().empty()) {
-    std::println("No device found with vid {:#6x} and pid {:#6x}", *vid, *pid);
-    return 0;
-  }
-
-  auto profile{find_device_profile(registry.items().front())};
-
-  // at this point we filtered already
-  assert(profile.has_value());
-
-  auto device{registry.extract_front()};
-
-  profile->Handler(device, color);
-
-  return 0;
 }
