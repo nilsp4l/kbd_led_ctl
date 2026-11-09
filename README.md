@@ -5,7 +5,7 @@ For more info refer to https://nilsp4l.dev/blog/linux_stuff/keyboard_led_control
 
 ## Why
 The goal is to offer a small minimal bloat ctl program to fix the problems with ITE5570E under wayland. Other tools exist that fix it as well, yet not
-as minimal and fast.
+as minimal and fast. While that comes in handy when running it as an init service.
 
 ## Supported devices
 
@@ -18,7 +18,7 @@ Requires `asus-nb-wmi` to be loaded.
 ## Build
 
 ```sh
-cmake -B build -DCMAKE_BUILD_TYPE=MinSizeRel
+cmake -B build 
 cmake --build build
 ```
 
