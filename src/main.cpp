@@ -1,16 +1,13 @@
 
 #include "device/device_profile.hpp"
 #include "hid/hid_device.hpp"
+#include "hid/hid_raw.hpp"
 #include "hid/hid_registry.hpp"
 #include "rgbi.hpp"
 #include <cassert>
 #include <cstdint>
-#include <cstdio>
 #include <fcntl.h>
-#include <filesystem>
-#include <fstream>
 #include <getopt.h>
-#include <iostream>
 #include <linux/hidraw.h>
 #include <optional>
 #include <string>
@@ -18,76 +15,6 @@
 #include <unistd.h>
 
 using namespace kbd_led_ctl;
-
-static void fill_registry(hid::HID_Registry &registry) {
-  static constexpr const char *hidraw_dir{"/sys/class/hidraw"};
-  static constexpr const char *hidraw_prefix{"hidraw"};
-  static std::filesystem::path uevent_subpath{std::filesystem::path("device") /
-                                              "uevent"};
-  for (const auto &entry : std::filesystem::directory_iterator(hidraw_dir)) {
-    std::string file_name{entry.path().filename().string()};
-    if (!file_name.starts_with(hidraw_prefix)) {
-      // very unlikely case but still
-      continue;
-    }
-    std::uint32_t id;
-    std::sscanf(file_name.c_str(), std::format("{}%x", hidraw_prefix).c_str(),
-                &id);
-
-    std::ifstream uevent(entry.path() / uevent_subpath);
-
-    if (!uevent) {
-      // also quite unlikely, but still
-      continue;
-    }
-
-    std::uint32_t bus, vid, pid;
-
-    std::string driver{};
-    std::string hid_name;
-    std::string hid_phys{};
-    std::string hid_uniq{};
-    std::string modalias{};
-
-    for (std::string line; std::getline(uevent, line);) {
-      if (line.starts_with("HID_ID=")) {
-        auto ec =
-            std::sscanf(line.c_str(), "HID_ID=%x:%x:%x", &bus, &vid, &pid);
-
-        if (ec != 3) {
-          return;
-        }
-
-        continue;
-      }
-
-      std::array<std::string, 2> key_value;
-      auto eq{line.find('=')};
-      if (eq == std::string_view::npos) {
-        return;
-      }
-
-      key_value = {std::string{line.substr(0, eq)},
-                   std::string{line.substr(eq + 1)}};
-
-      if (key_value[0] == "DRIVER") {
-        driver = std::move(key_value[1]);
-      } else if (key_value[0] == "HID_NAME") {
-        hid_name = std::move(key_value[1]);
-      } else if (key_value[0] == "HID_PHYS") {
-        hid_phys = std::move(key_value[1]);
-      } else if (key_value[0] == "HID_UNIQ") {
-        hid_uniq = std::move(key_value[1]);
-      } else if (key_value[0] == "MODALIAS") {
-        modalias = std::move(key_value[1]);
-      }
-    }
-    registry.register_device(kbd_led_ctl::hid::HID_Device{
-        id, std::move(driver), kbd_led_ctl::hid::HID_ID{bus, vid, pid},
-        std::move(hid_name), std::move(hid_phys), std::move(hid_uniq),
-        std::move(modalias)});
-  }
-}
 
 std::optional<const device::Device_Profile>
 find_device_profile(const hid::HID_Device &device) {
@@ -98,6 +25,39 @@ find_device_profile(const hid::HID_Device &device) {
     }
   return {};
 }
+
+enum class Parsing_Modes {
+  kFillRegistry,
+  kFindViDPiD,
+};
+
+template <>
+struct hid::HID_Parsing_Handler<Parsing_Modes, Parsing_Modes::kFillRegistry> {
+  static bool operator()(HID_Device hid_device, HID_Registry &registry,
+                         std::optional<HID_ID> compare) {
+    static_cast<void>(compare);
+    registry.register_device(std::move(hid_device));
+    return true;
+  }
+};
+
+template <>
+struct hid::HID_Parsing_Handler<Parsing_Modes, Parsing_Modes::kFindViDPiD> {
+  static bool operator()(HID_Device hid_device, HID_Registry &registry,
+                         std::optional<HID_ID> compare) {
+    if (!compare) {
+      return false;
+    }
+
+    if (hid_device.hid_id_.vid == compare->vid &&
+        hid_device.hid_id_.pid == compare->pid) {
+      registry.register_device(std::move(hid_device));
+      return false;
+    }
+
+    return true;
+  }
+};
 
 void filter_registry(hid::HID_Registry &registry) {
   registry.filter([](const hid::HID_Device &device) {
@@ -131,13 +91,6 @@ void list_with_profile(const hid::HID_Registry &registry) {
       std::print("{}\n\n", device);
     }
   }
-}
-
-void find_device_filtered(uint32_t vid, uint32_t pid,
-                          hid::HID_Registry &registry) {
-  registry.filter([vid, pid](const hid::HID_Device &device) {
-    return device.hid_id_.vid != vid || device.hid_id_.pid != pid;
-  });
 }
 
 int main(int argc, char *argv[]) {
@@ -183,7 +136,34 @@ int main(int argc, char *argv[]) {
       }
     }
     hid::HID_Registry registry;
-    fill_registry(registry);
+
+    if (pid && vid) {
+
+      // bus doesnt matter for this search
+      hid::HID_ID to_find{.bus = 0, .vid = *vid, .pid = *pid};
+      hid::HID_Raw::Parse<Parsing_Modes, Parsing_Modes::kFindViDPiD>(registry,
+                                                                     to_find);
+
+      if (registry.items().empty()) {
+        std::println("No device found with vid {:#6x} and pid {:#6x}", *vid,
+                     *pid);
+        return 1;
+      }
+
+      auto profile{find_device_profile(registry.items().front())};
+
+      if (!profile) {
+        std::println("Device not supported");
+        return 1;
+      }
+
+      auto device{registry.extract_front()};
+
+      profile->Handler(device, color);
+      return 0;
+    }
+
+    hid::HID_Raw::Parse<Parsing_Modes, Parsing_Modes::kFillRegistry>(registry);
     if (list_flag) {
       list_with_profile(registry);
       return 0;
@@ -195,27 +175,6 @@ int main(int argc, char *argv[]) {
       list_with_profile(registry);
       return 0;
     }
-
-    if (!pid || !vid) {
-      return 1;
-    }
-
-    find_device_filtered(*vid, *pid, registry);
-
-    if (registry.items().empty()) {
-      std::println("No device found with vid {:#6x} and pid {:#6x}", *vid,
-                   *pid);
-      return 0;
-    }
-
-    auto profile{find_device_profile(registry.items().front())};
-
-    // at this point we filtered already
-    assert(profile.has_value());
-
-    auto device{registry.extract_front()};
-
-    profile->Handler(device, color);
 
     return 0;
   } catch (const std::system_error &e) {

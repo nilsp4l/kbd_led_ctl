@@ -1,4 +1,4 @@
-set(SOURCES hid_device.cpp hid_registry.cpp)
+set(SOURCES hid_device.cpp hid_registry.cpp hid_raw.cpp)
 
 target_sources(${EXECUTABLE_NAME} PRIVATE ${SOURCES})
 

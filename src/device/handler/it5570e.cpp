@@ -53,7 +53,7 @@ void handle_it5570e(hid::HID_Device &device, std::optional<RGBI> color) {
   if (color) {
 
     /*
-       see the struct lamp_update_flags to understand the fields
+       see the LampRangeUpdate at the beginning to understand the fields
 
        we assume the lamp count to be 1. that is a fair assumption because we
        implement for one controller explicitally here. otherwise we would need
