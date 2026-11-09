@@ -93,6 +93,31 @@ void list_with_profile(const hid::HID_Registry &registry) {
   }
 }
 
+void print_usage(std::FILE *out = stdout) {
+  std::print(out, R"(kbd_led_ctl: control HID LampArray keyboard lighting
+
+USAGE
+    kbd_led_ctl --list
+    kbd_led_ctl --filtered
+    kbd_led_ctl --vid V --pid P [--color RRGGBBII]
+    kbd_led_ctl --help
+
+DEVICE SELECTION
+    --list              enumerate all HID devices (★ = supported)
+    --filtered          enumerate only devices with a profile
+    --vid V --pid P     target this Vendor/Product ID (hex)
+
+ACTIONS
+    --color RRGGBBII    take host control, apply color
+                        (8 hex digits; default: no color change, just switch autonomous off)
+    --reset             hand control back to the firmware
+
+SUPPORTED
+    0b05:19b6           ASUS Vivobook S15 (ITE5570)
+
+)");
+}
+
 int main(int argc, char *argv[]) {
   static const option opts[] = {{"list", no_argument, nullptr, 'l'},
                                 {"filtered", no_argument, nullptr, 'f'},
@@ -129,7 +154,7 @@ int main(int argc, char *argv[]) {
         color = RGBI{optarg};
         break;
       case 'h':
-        // usage();
+        print_usage();
         return 0;
       default:
         return 2;
