@@ -74,8 +74,8 @@ uint32_t from_hex(const char *str) {
   uint32_t to_return{};
   auto [ptr, ec]{std::from_chars(
       hex_str.data(), hex_str.data() + hex_str.size(), to_return, 16)};
-  if (ec == std::errc{} && ptr != hex_str.data() + hex_str.size()) {
-    return 0;
+  if (ec != std::errc{} || ptr != hex_str.data() + hex_str.size()) {
+    throw std::runtime_error("Error parsing hex");
   }
 
   return to_return;
@@ -110,7 +110,6 @@ DEVICE SELECTION
 ACTIONS
     --color RRGGBBII    take host control, apply color
                         (8 hex digits; default: no color change, just switch autonomous off)
-    --reset             hand control back to the firmware
 
 SUPPORTED
     0b05:19b6           ASUS Vivobook S15 (ITE5570)
@@ -136,7 +135,7 @@ int main(int argc, char *argv[]) {
   std::optional<RGBI> color{};
   int c{};
   try {
-    while ((c = getopt_long(argc, argv, "lfv:p:h", opts, nullptr)) != -1) {
+    while ((c = getopt_long(argc, argv, "lfv:p:c:h", opts, nullptr)) != -1) {
       switch (static_cast<char>(c)) {
       case 'l':
         list_flag = true;

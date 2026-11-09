@@ -28,7 +28,7 @@ struct HID_Raw {
         continue;
       }
       std::uint32_t id;
-      std::sscanf(file_name.c_str(), std::format("{}%x", hidraw_prefix).c_str(),
+      std::sscanf(file_name.c_str(), std::format("{}%d", hidraw_prefix).c_str(),
                   &id);
 
       std::ifstream uevent(entry.path() / uevent_subpath);

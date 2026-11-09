@@ -6,11 +6,9 @@
 
 namespace kbd_led_ctl::device::handler {
 
-#define AUTONOMOUS 0x0B
-#define OFF 0x00
-#define ON 0x01
-#define AUTONOMOUS_OFF AUTONOMOUS, OFF
-#define AUTONOMOUS_ON AUTONOMOUS, ON
+static constexpr uint8_t AUTONOMOUS{0x0B};
+static constexpr uint8_t OFF{0x00};
+static constexpr uint8_t ON{0x01};
 
 /*
  * Wire layout of the LampRangeUpdate report (for reference only):
@@ -42,12 +40,13 @@ void handle_it5570e(hid::HID_Device &device, std::optional<RGBI> color) {
   // somewhat undefined, which can also be the whole reason we have to do this
   // in the first place. we can do so because turning on autonomous gives
   // control over brightness again
-  std::array<uint8_t, Autonomous_Report_Size> autonomous_on = {AUTONOMOUS_ON};
+  std::array<uint8_t, Autonomous_Report_Size> autonomous_on = {AUTONOMOUS, ON};
   POSIX_ASSERT(ioctl(device.fd(), HIDIOCSFEATURE(std::size(autonomous_on)),
                      autonomous_on.data()) >= 0);
 
   // we want to keep our control.
-  std::array<uint8_t, Autonomous_Report_Size> autonomous_off = {AUTONOMOUS_OFF};
+  std::array<uint8_t, Autonomous_Report_Size> autonomous_off = {AUTONOMOUS,
+                                                                OFF};
   POSIX_ASSERT(ioctl(device.fd(), HIDIOCSFEATURE(std::size(autonomous_off)),
                      autonomous_off.data()) >= 0);
   if (color) {
