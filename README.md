@@ -26,7 +26,7 @@ cmake --build build --config Release`
 ## Usage
 
 ```bash
-kbd_led_ctl --list                     # enumerate HID devices (★ = supported)
+kbd_led_ctl --list                     # list HID devices (a row giving you info on the device tells you that it's supported)
 kbd_led_ctl --filtered                 # only supported devices
 kbd_led_ctl --vid 0b05 --pid 19b6      # take host control, with undefined led color 
 kbd_led_ctl --vid 0b05 --pid 19b6 --color 5b00ffff # take host control, set the color 
