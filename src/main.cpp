@@ -126,8 +126,6 @@ int main(int argc, char *argv[]) {
                                 {"help", no_argument, nullptr, 'h'},
                                 {nullptr, 0, nullptr, 0}};
 
-  // red under full intensity
-
   bool list_flag{false};
   bool filtered_flag{false};
   std::optional<std::uint32_t> vid{};
