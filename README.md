@@ -1,18 +1,17 @@
 # kbd_led_ctl
 HID ctl program to set the firmware of your keyboard LEDs onto a controllable state. Also allows to set a color.
-Built for the ASUS Vivobook S15 (ITE5570 controller) under Wayland, but adding a device is easily achievable.
+Initially built for the ASUS Vivobook S15 (ITE5570 controller), but adding a device is easily achievable.
 For more info refer to https://nilsp4l.dev/blog/linux_stuff/keyboard_led_control/
 
 ## Why
-The goal is to offer a small minimal bloat ctl program to fix the problems with ITE5570E under wayland. Other tools exist that fix it as well, yet not
-as minimal and fast. While that comes in handy when running it as an init service.
+The goal is to offer a small minimal bloat ctl program to fix problems with leds or to simply change their color. Other tools exist that offer that functionality as well, yet not as minimal and fast, while that comes in handy when running it as an init service.
 
 ## Supported devices
 
 | VID:PID | Device |
 | :--- | :--- |
 | `0b05:19b6` | ASUS Vivobook S15 (ITE5570) |
-| `1e7d:2fee` | Roccat Vulcank TKL |
+| `1e7d:2fee` | Roccat Vulcan TKL |
 
 Requires `asus-nb-wmi` to be loaded.
 
