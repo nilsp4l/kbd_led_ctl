@@ -42,7 +42,7 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release -DALL_DEVICES=ON
 # No handlers (list-only)
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 
-cmake --build build`
+cmake --build build
 ```
 
 > **Note:** CMake caches option values. To change the selection, pass

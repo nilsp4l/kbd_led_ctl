@@ -74,7 +74,6 @@ void handle_it5570e(hid::HID_Registry &registry, std::optional<RGBI> color) {
                        HIDIOCSFEATURE(std::size(lamp_range_update_report)),
                        lamp_range_update_report.data()) >= 0);
   }
-  std::println("Updated");
 }
 
 } // namespace kbd_led_ctl::device::handler
