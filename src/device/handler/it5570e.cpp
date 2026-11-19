@@ -1,5 +1,7 @@
 #include "device/handler/it5570e.hpp"
+#include "hid/hid_registry.hpp"
 #include "posix/posix_assert.hpp"
+#include <assert.h>
 #include <cstddef>
 #include <linux/hidraw.h>
 #include <sys/ioctl.h>
@@ -23,7 +25,11 @@ static constexpr uint8_t ON{0x01};
  *   [9]   Intensity
  */
 
-void handle_it5570e(hid::HID_Device &device, std::optional<RGBI> color) {
+void handle_it5570e(hid::HID_Registry &registry, std::optional<RGBI> color) {
+
+  // we are guaranteed to have at least one item here
+  assert(!registry.items().empty());
+  auto device{registry.extract_front()};
 
   if (!device.opened()) {
     device.open(); // throws
@@ -68,6 +74,7 @@ void handle_it5570e(hid::HID_Device &device, std::optional<RGBI> color) {
                        HIDIOCSFEATURE(std::size(lamp_range_update_report)),
                        lamp_range_update_report.data()) >= 0);
   }
+  std::println("Updated");
 }
 
 } // namespace kbd_led_ctl::device::handler

@@ -18,9 +18,7 @@ struct HID_Raw {
   static const inline std::filesystem::path uevent_subpath{
       std::filesystem::path("device") / "uevent"};
 
-  template <typename T, T t>
-  static void Parse(HID_Registry &registry,
-                    std::optional<HID_ID> compare = {}) {
+  template <typename T, T t> static void Parse(HID_Registry &registry) {
     for (const auto &entry : std::filesystem::directory_iterator(hidraw_dir)) {
       std::string file_name{entry.path().filename().string()};
       if (!file_name.starts_with(hidraw_prefix)) {
@@ -89,7 +87,7 @@ struct HID_Raw {
           std::move(modalias)};
 
       if (!HID_Parsing_Handler<T, t>::operator()(std::move(hid_device),
-                                                 registry, compare)) {
+                                                 registry)) {
         break;
       }
     }

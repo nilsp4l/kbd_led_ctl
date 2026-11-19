@@ -33,35 +33,25 @@ enum class Parsing_Modes {
 
 template <>
 struct hid::HID_Parsing_Handler<Parsing_Modes, Parsing_Modes::kFillRegistry> {
-  static bool operator()(HID_Device hid_device, HID_Registry &registry,
-                         std::optional<HID_ID> compare) {
-    static_cast<void>(compare);
+  static bool operator()(HID_Device hid_device, HID_Registry &registry) {
     registry.register_device(std::move(hid_device));
     return true;
   }
 };
 
-template <>
-struct hid::HID_Parsing_Handler<Parsing_Modes, Parsing_Modes::kFindViDPiD> {
-  static bool operator()(HID_Device hid_device, HID_Registry &registry,
-                         std::optional<HID_ID> compare) {
-    if (!compare) {
+void filter_registry(hid::HID_Registry &registry,
+                     std::optional<hid::HID_ID> compare_id = {}) {
+  registry.filter([compare_id](const hid::HID_Device &device) {
+    auto profile{find_device_profile(device)};
+    if (!profile.has_value()) {
+      return true;
+    }
+    if (!compare_id) {
       return false;
     }
 
-    if (hid_device.hid_id_.vid == compare->vid &&
-        hid_device.hid_id_.pid == compare->pid) {
-      registry.register_device(std::move(hid_device));
-      return false;
-    }
-
-    return true;
-  }
-};
-
-void filter_registry(hid::HID_Registry &registry) {
-  registry.filter([](const hid::HID_Device &device) {
-    return !find_device_profile(device).has_value();
+    return profile->Product_ID != compare_id->pid ||
+           profile->Vendor_ID != compare_id->vid;
   });
 }
 
@@ -159,12 +149,22 @@ int main(int argc, char *argv[]) {
     }
     hid::HID_Registry registry;
 
+    hid::HID_Raw::Parse<Parsing_Modes, Parsing_Modes::kFillRegistry>(registry);
+    if (list_flag) {
+      list_with_profile(registry);
+      return 0;
+    }
+
+    if (filtered_flag) {
+      filter_registry(registry);
+      list_with_profile(registry);
+      return 0;
+    }
+
     if (pid && vid) {
 
-      // bus doesnt matter for this search
-      hid::HID_ID to_find{.bus = 0, .vid = *vid, .pid = *pid};
-      hid::HID_Raw::Parse<Parsing_Modes, Parsing_Modes::kFindViDPiD>(registry,
-                                                                     to_find);
+      // bus doesnt matter for the comparison
+      filter_registry(registry, hid::HID_ID{0, *vid, *pid});
 
       if (registry.items().empty()) {
         std::println("No device found with vid {:#6x} and pid {:#6x}", *vid,
@@ -179,22 +179,7 @@ int main(int argc, char *argv[]) {
         return 1;
       }
 
-      auto device{registry.extract_front()};
-
-      profile->Handler(device, color);
-      return 0;
-    }
-
-    hid::HID_Raw::Parse<Parsing_Modes, Parsing_Modes::kFillRegistry>(registry);
-    if (list_flag) {
-      list_with_profile(registry);
-      return 0;
-    }
-
-    filter_registry(registry);
-
-    if (filtered_flag) {
-      list_with_profile(registry);
+      profile->Handler(registry, color);
       return 0;
     }
 
