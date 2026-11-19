@@ -42,7 +42,7 @@ constexpr std::size_t NO_COLUMNS = 12;
 constexpr std::size_t MODE_BUF_LEN = 443;
 
 // for whatever reason roccat has this weird packet format of
-// 12x(12xr,12xr,12xr) maybe thats the standard elsewhere too, but then its a
+// 12x(12xr,12xg,12xb) maybe thats the standard elsewhere too, but then its a
 // stupid standard there as well
 template <std::size_t N>
 void fill_grid(std::array<uint8_t, N> &buf, std::size_t offset, RGBI color) {
