@@ -12,15 +12,43 @@ as minimal and fast. While that comes in handy when running it as an init servic
 | VID:PID | Device |
 | :--- | :--- |
 | `0b05:19b6` | ASUS Vivobook S15 (ITE5570) |
+| `1e7d:2fee` | Roccat Vulcank TKL |
 
 Requires `asus-nb-wmi` to be loaded.
 
 ## Build
+The main purpose of this repository is to leave as much functionality out as possible. So, it is up to you what handlers are compiled in.
+
+Device handlers are compiled in individually and are **disabled by default**
+(a build with no flags can only list devices, not control them).
+
+| CMake flag | Enables |
+| :--- | :--- |
+| `-DDEVICE_IT5570E=ON` | `0b05:19b6` |
+| `-DDEVICE_VULCAN_TKL=ON` | `1e7d:2fee` |
+| `-DALL_DEVICES=ON` | all of the above |
+
 
 ```sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release`
+# Single device
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DDEVICE_IT5570E=ON
+
+# Multiple devices
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DDEVICE_IT5570E=ON -DDEVICE_VULCAN_TKL=ON
+
+# Everything
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DALL_DEVICES=ON
+
+# No handlers (list-only)
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+cmake --build build`
 ```
+
+> **Note:** CMake caches option values. To change the selection, pass
+> `-D...=OFF` explicitly or start from a fresh build directory
+> (`rm -rf build`). Separate dirs per configuration (`build-it5570e`,
+> `build-vulcan`, ...) avoid the issue entirely.
 
 
 ## Usage

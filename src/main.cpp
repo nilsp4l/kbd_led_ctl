@@ -99,10 +99,11 @@ DEVICE SELECTION
 
 ACTIONS
     --color RRGGBBII    take host control, apply color
-                        (8 hex digits; default: no color change, just switch autonomous off)
+                        (8 hex digits; default: the handler defines what color is set)
 
 SUPPORTED
     0b05:19b6           ASUS Vivobook S15 (ITE5570)
+    1e7d:2fee           Roccat Vulcan TKL 
 
 )");
 }
@@ -181,6 +182,12 @@ int main(int argc, char *argv[]) {
 
       profile->Handler(registry, color);
       return 0;
+    } else if (pid) {
+      std::println("pid given, but missing vid");
+      return 1;
+    } else if (vid) {
+      std::println("vid given, but missing pid");
+      return 1;
     }
 
     return 0;

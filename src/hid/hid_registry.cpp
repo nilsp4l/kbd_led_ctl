@@ -21,4 +21,23 @@ const std::list<HID_Device> &HID_Registry::items() const {
   return hid_devices_;
 }
 
+HID_Registry::iterator HID_Registry::begin() noexcept {
+  return hid_devices_.begin();
+}
+HID_Registry::iterator HID_Registry::end() noexcept {
+  return hid_devices_.end();
+}
+HID_Registry::const_iterator HID_Registry::begin() const noexcept {
+  return hid_devices_.begin();
+}
+HID_Registry::const_iterator HID_Registry::end() const noexcept {
+  return hid_devices_.end();
+}
+HID_Registry::const_iterator HID_Registry::cbegin() const noexcept {
+  return hid_devices_.cbegin();
+}
+HID_Registry::const_iterator HID_Registry::cend() const noexcept {
+  return hid_devices_.cend();
+}
+
 } // namespace kbd_led_ctl::hid
