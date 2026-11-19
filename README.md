@@ -8,12 +8,11 @@ The goal is to offer a small minimal bloat ctl program to fix problems with leds
 
 ## Supported devices
 
-| VID:PID | Device |
+| VID:PID | Device | Requirements |
 | :--- | :--- |
-| `0b05:19b6` | ASUS Vivobook S15 (ITE5570) |
-| `1e7d:2fee` | Roccat Vulcan TKL |
+| `0b05:19b6` | ASUS Vivobook S15 (ITE5570) | `asus-nb-wmi`  loaded |
+| `1e7d:2fee` | Roccat Vulcan TKL | - |
 
-Requires `asus-nb-wmi` to be loaded.
 
 ## Build
 The main purpose of this repository is to leave as much functionality out as possible. So, it is up to you what handlers are compiled in.
